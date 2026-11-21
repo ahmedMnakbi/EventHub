@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Accueil{% endblock %}
+
+{% block body %}
+    <section class="hero p-4 p-md-5 mb-5">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-5 fw-bold">Vos événements, vos billets, en quelques clics.</h1>
+                <p class="lead mb-4">Concerts, conférences, festivals, ateliers… Trouvez l'événement qui vous ressemble et réservez vos places en toute sécurité.</p>
+                {% if not app.user %}
+                    <a href="{{ path('app_register') }}" class="btn btn-light btn-lg me-2">Créer un compte</a>
+                    <a href="{{ path('app_login') }}" class="btn btn-outline-light btn-lg">Se connecter</a>
+                {% else %}
+                    <a href="{{ path('app_account') }}" class="btn btn-light btn-lg">Mon compte</a>
+                {% endif %}
+            </div>
+            <div class="col-lg-4 d-none d-lg-block text-center">
+                <i class="bi bi-ticket-perforated" style="font-size: 9rem; opacity: .85"></i>
+            </div>
+        </div>
+    </section>
+
+    <div class="row g-4">
+        {% for item in [
+            {icon: 'bi-search', title: 'Recherchez', text: 'Filtrez par catégorie, ville, date ou budget.'},
+            {icon: 'bi-cart-check', title: 'Réservez', text: 'Choisissez vos billets Standard ou VIP et validez votre panier.'},
+            {icon: 'bi-shield-lock', title: 'En toute sécurité', text: 'Vos données sont protégées et vos réservations accessibles à tout moment.'}
+        ] %}
+            <div class="col-md-4">
+                <div class="card h-100 p-4">
+                    <i class="bi {{ item.icon }} fs-2 text-primary mb-2"></i>
+                    <h2 class="h5">{{ item.title }}</h2>
+                    <p class="text-muted mb-0">{{ item.text }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

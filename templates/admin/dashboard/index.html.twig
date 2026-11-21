@@ -1,0 +1,28 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Tableau de bord · Admin{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block admin_content %}
+    <div class="row g-3">
+        {% for stat in [
+            {label: 'Utilisateurs', value: userCount, icon: 'bi-people', color: 'primary'},
+            {label: 'Événements', value: '—', icon: 'bi-calendar-event', color: 'success'},
+            {label: 'Réservations', value: '—', icon: 'bi-receipt', color: 'warning'},
+            {label: 'Chiffre d\'affaires', value: '—', icon: 'bi-cash-coin', color: 'danger'}
+        ] %}
+            <div class="col-sm-6 col-xl-3">
+                <div class="card stat-card p-3 d-flex flex-row align-items-center gap-3">
+                    <span class="icon bg-{{ stat.color }}-subtle text-{{ stat.color }}"><i class="bi {{ stat.icon }}"></i></span>
+                    <div>
+                        <div class="text-muted small">{{ stat.label }}</div>
+                        <div class="fs-4 fw-bold">{{ stat.value }}</div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="card p-4 mt-4">
+        <p class="mb-0 text-muted">Les statistiques détaillées (graphiques Chart.js) seront ajoutées à l'étape 9.</p>
+    </div>
+{% endblock %}
