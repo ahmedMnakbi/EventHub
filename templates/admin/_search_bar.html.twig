@@ -1,0 +1,17 @@
+{# Generic search form (GET) for admin lists. Params: placeholder, search.
+   Use {% embed %} and override the "filters" block to add extra filters. #}
+<form method="get" class="row g-2 align-items-center mb-3" role="search">
+    <div class="col-sm">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" value="{{ search }}" class="form-control" placeholder="{{ placeholder }}" maxlength="100">
+        </div>
+    </div>
+    {% block filters %}{% endblock %}
+    <div class="col-auto">
+        <button class="btn btn-outline-primary" type="submit">Filtrer</button>
+        {% if app.request.query.all is not empty %}
+            <a href="{{ path(app.current_route) }}" class="btn btn-link">Réinitialiser</a>
+        {% endif %}
+    </div>
+</form>
