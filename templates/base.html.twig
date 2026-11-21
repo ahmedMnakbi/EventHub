@@ -1,24 +1,32 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
     <head>
         <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
-
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}Accueil{% endblock %} · {{ site_name }}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+        {% block stylesheets %}{% endblock %}
         {% block javascripts %}
             {% block importmap %}{{ importmap('app') }}{% endblock %}
         {% endblock %}
-
-        {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphp_hot_reload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-        {% endif %}
     </head>
     <body>
-        {% block body %}{% endblock %}
+        {% block navbar %}
+            {{ include('partials/_navbar.html.twig') }}
+        {% endblock %}
+
+        <main class="{% block main_class %}container py-4{% endblock %}">
+            {% block flashes %}{{ include('partials/_flashes.html.twig') }}{% endblock %}
+            {% block body %}{% endblock %}
+        </main>
+
+        {% block footer %}
+            <footer class="bg-white border-top py-4 mt-5">
+                <div class="container d-flex flex-column flex-md-row justify-content-between gap-2 small text-muted">
+                    <span><i class="bi bi-ticket-perforated"></i> {{ site_name }} © {{ 'now'|date('Y') }}</span>
+                    <span>Projet Symfony · Développement des applications sécurisées</span>
+                </div>
+            </footer>
+        {% endblock %}
     </body>
 </html>

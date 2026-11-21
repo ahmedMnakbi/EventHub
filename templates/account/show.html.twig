@@ -1,0 +1,18 @@
+{% extends 'account/_layout.html.twig' %}
+
+{% block title %}Mon compte{% endblock %}
+
+{% block account_content %}
+    <h1 class="h4 mb-4">Mon profil</h1>
+    <dl class="row mb-0">
+        <dt class="col-sm-4">Prénom</dt><dd class="col-sm-8">{{ app.user.firstName }}</dd>
+        <dt class="col-sm-4">Nom</dt><dd class="col-sm-8">{{ app.user.lastName }}</dd>
+        <dt class="col-sm-4">Email</dt><dd class="col-sm-8">{{ app.user.email }}</dd>
+        <dt class="col-sm-4">Téléphone</dt><dd class="col-sm-8">{{ app.user.phone ?: '—' }}</dd>
+        <dt class="col-sm-4">Membre depuis</dt><dd class="col-sm-8">{{ app.user.createdAt|date('d/m/Y') }}</dd>
+    </dl>
+    <div class="mt-4">
+        <a href="{{ path('app_account_edit') }}" class="btn btn-primary"><i class="bi bi-pencil"></i> Modifier</a>
+        <a href="{{ path('app_account_password') }}" class="btn btn-outline-secondary"><i class="bi bi-key"></i> Changer le mot de passe</a>
+    </div>
+{% endblock %}

@@ -1,3 +1,55 @@
+:root {
+    --eh-primary: #5b3cc4;
+    --eh-primary-dark: #452e96;
+    --eh-accent: #ff7a59;
+}
+
 body {
-    background-color: skyblue;
+    background-color: #f6f5fb;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main { flex: 1 0 auto; }
+
+.btn-primary {
+    --bs-btn-bg: var(--eh-primary);
+    --bs-btn-border-color: var(--eh-primary);
+    --bs-btn-hover-bg: var(--eh-primary-dark);
+    --bs-btn-hover-border-color: var(--eh-primary-dark);
+    --bs-btn-active-bg: var(--eh-primary-dark);
+}
+
+.text-primary { color: var(--eh-primary) !important; }
+.navbar-brand { font-weight: 700; letter-spacing: .5px; }
+.navbar-brand i { color: var(--eh-accent); }
+
+.hero {
+    background: linear-gradient(135deg, var(--eh-primary) 0%, #8e5cf0 60%, var(--eh-accent) 140%);
+    color: #fff;
+    border-radius: 1rem;
+}
+
+.auth-card { max-width: 480px; }
+.card { border: 0; box-shadow: 0 2px 12px rgba(40, 20, 90, .07); }
+
+/* ---------- Admin ---------- */
+.admin-sidebar {
+    width: 240px;
+    background: #1f1640;
+    min-height: 100vh;
+}
+.admin-sidebar .nav-link { color: #cfc8ee; border-radius: .5rem; }
+.admin-sidebar .nav-link:hover,
+.admin-sidebar .nav-link.active { background: rgba(255,255,255,.1); color: #fff; }
+.admin-sidebar .nav-link.disabled { color: #6f6797; }
+.stat-card .icon {
+    width: 48px; height: 48px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: .75rem; font-size: 1.4rem;
+}
+
+@media (max-width: 991.98px) {
+    .admin-sidebar { width: 100%; min-height: auto; }
 }

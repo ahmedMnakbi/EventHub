@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Administration{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block flashes %}{% endblock %}
+{% block main_class %}d-lg-flex p-0{% endblock %}
+
+{% block body %}
+    {% set route = app.current_route %}
+    {% set menu = [
+        {route: 'admin_dashboard', icon: 'bi-speedometer2', label: 'Tableau de bord'},
+        {route: null, icon: 'bi-tags', label: 'Catégories', step: 3},
+        {route: null, icon: 'bi-geo-alt', label: 'Lieux', step: 3},
+        {route: null, icon: 'bi-calendar-event', label: 'Événements', step: 4},
+        {route: null, icon: 'bi-receipt', label: 'Réservations', step: 7},
+        {route: null, icon: 'bi-people', label: 'Clients', step: 7},
+        {route: null, icon: 'bi-star', label: 'Avis', step: 8},
+        {route: null, icon: 'bi-bar-chart', label: 'Statistiques', step: 9},
+    ] %}
+
+    <aside class="admin-sidebar p-3 flex-shrink-0">
+        <a href="{{ path('admin_dashboard') }}" class="d-flex align-items-center text-white text-decoration-none mb-4 fs-5 fw-bold">
+            <i class="bi bi-ticket-perforated-fill me-2" style="color: var(--eh-accent)"></i> {{ site_name }} <span class="badge bg-secondary ms-2 fs-6">Admin</span>
+        </a>
+        <nav class="nav flex-column gap-1">
+            {% for item in menu %}
+                {% if item.route %}
+                    <a class="nav-link {{ route starts with item.route ? 'active' }}" href="{{ path(item.route) }}"><i class="bi {{ item.icon }} me-2"></i>{{ item.label }}</a>
+                {% else %}
+                    <span class="nav-link disabled"><i class="bi {{ item.icon }} me-2"></i>{{ item.label }} <small>(étape {{ item.step }})</small></span>
+                {% endif %}
+            {% endfor %}
+        </nav>
+        <hr class="border-secondary">
+        <a class="nav-link text-light small" href="{{ path('app_home') }}"><i class="bi bi-arrow-left"></i> Retour au site</a>
+        <a class="nav-link text-danger small mt-2" href="{{ logout_path() }}"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
+    </aside>
+
+    <div class="flex-grow-1 p-3 p-md-4" style="min-width: 0">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">{% block page_title %}{% endblock %}</h1>
+            <span class="text-muted small"><i class="bi bi-person-badge"></i> {{ app.user.fullName }}</span>
+        </div>
+        {{ include('partials/_flashes.html.twig') }}
+        {% block admin_content %}{% endblock %}
+    </div>
+{% endblock %}
