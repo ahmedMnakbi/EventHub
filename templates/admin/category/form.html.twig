@@ -1,0 +1,20 @@
+{% extends 'admin/base.html.twig' %}
+
+{% set is_new = category.id is null %}
+
+{% block title %}{{ is_new ? 'Nouvelle catégorie' : 'Modifier la catégorie' }} · Admin{% endblock %}
+{% block page_title %}{{ is_new ? 'Nouvelle catégorie' : 'Modifier « ' ~ category.name ~ ' »' }}{% endblock %}
+
+{% block admin_content %}
+    <div class="card p-3 p-md-4" style="max-width: 720px">
+        {{ form_start(form) }}
+            {{ form_row(form.name) }}
+            {{ form_row(form.icon) }}
+            {{ form_row(form.description) }}
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> {{ is_new ? 'Créer' : 'Enregistrer' }}</button>
+                <a href="{{ path('admin_category_index') }}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

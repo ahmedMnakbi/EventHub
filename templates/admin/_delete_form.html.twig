@@ -1,0 +1,12 @@
+{#
+    Delete button protected by a CSRF token and a confirmation dialog.
+    Params: action (url), token_id (string), message (confirmation text), label (optional)
+#}
+<form method="post" action="{{ action }}" class="d-inline"
+      data-controller="confirm" data-action="submit->confirm#ask"
+      data-confirm-message-value="{{ message }}">
+    <input type="hidden" name="_token" value="{{ csrf_token(token_id) }}">
+    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+        <i class="bi bi-trash"></i>{% if label is defined %} {{ label }}{% endif %}
+    </button>
+</form>
