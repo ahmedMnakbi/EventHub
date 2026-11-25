@@ -3,6 +3,7 @@ twig:
     form_themes: ['bootstrap_5_layout.html.twig']
     globals:
         site_name: 'EventHub'
+        event_upload_path: '%app.event_upload_path%'
 
 when@test:
     twig:

@@ -68,3 +68,12 @@ Après chaque `git pull` qui apporte de nouvelles migrations, lancez : `php bin/
 | `/connexion` / `/deconnexion` | public | Authentification |
 | `/compte` | `ROLE_USER` | Profil, modification, mot de passe |
 | `/admin` | `ROLE_ADMIN` | Tableau de bord administrateur |
+| `/admin/categories` | `ROLE_ADMIN` | CRUD des catégories |
+| `/admin/lieux` | `ROLE_ADMIN` | CRUD des lieux |
+| `/admin/evenements` | `ROLE_ADMIN` | CRUD des événements (upload de l'affiche), types de billets depuis la page détail |
+
+## Uploads
+
+Les affiches des événements sont stockées dans `public/uploads/events/` (ignoré par git, créé automatiquement au premier upload).
+Seules les images JPEG, PNG et WebP de 2 Mo maximum sont acceptées : le type est vérifié sur le contenu réel du fichier, et le nom est généré par le serveur.
+Le fichier `public/uploads/.htaccess` interdit l'exécution de scripts dans ce dossier quand l'application est hébergée sous Apache.

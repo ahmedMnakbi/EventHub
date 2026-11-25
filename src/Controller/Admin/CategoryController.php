@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Entity\Category;
 use App\Form\CategoryType;
 use App\Repository\CategoryRepository;
+use App\Repository\EventRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -74,10 +75,18 @@ class CategoryController extends AbstractController
     }
 
     #[Route('/{id<\d+>}/supprimer', name: 'admin_category_delete', methods: ['POST'])]
-    public function delete(Request $request, Category $category, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Category $category, EntityManagerInterface $entityManager, EventRepository $eventRepository): Response
     {
         if (!$this->isCsrfTokenValid('delete-category-'.$category->getId(), $request->getPayload()->getString('_token'))) {
             $this->addFlash('danger', 'Jeton de sécurité invalide, suppression annulée.');
+
+            return $this->redirectToRoute('admin_category_index');
+        }
+
+        // Events cannot lose their category: refuse instead of a database error (foreign key).
+        $eventCount = $eventRepository->count(['category' => $category]);
+        if ($eventCount > 0) {
+            $this->addFlash('danger', sprintf('Impossible de supprimer « %s » : %d événement(s) utilisent cette catégorie.', $category->getName(), $eventCount));
 
             return $this->redirectToRoute('admin_category_index');
         }
