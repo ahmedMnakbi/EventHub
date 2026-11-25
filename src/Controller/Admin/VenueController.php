@@ -4,6 +4,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\Venue;
 use App\Form\VenueType;
+use App\Repository\EventRepository;
 use App\Repository\VenueRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
@@ -76,10 +77,18 @@ class VenueController extends AbstractController
     }
 
     #[Route('/{id<\d+>}/supprimer', name: 'admin_venue_delete', methods: ['POST'])]
-    public function delete(Request $request, Venue $venue, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Venue $venue, EntityManagerInterface $entityManager, EventRepository $eventRepository): Response
     {
         if (!$this->isCsrfTokenValid('delete-venue-'.$venue->getId(), $request->getPayload()->getString('_token'))) {
             $this->addFlash('danger', 'Jeton de sécurité invalide, suppression annulée.');
+
+            return $this->redirectToRoute('admin_venue_index');
+        }
+
+        // Events cannot lose their venue: refuse instead of a database error (foreign key).
+        $eventCount = $eventRepository->count(['venue' => $venue]);
+        if ($eventCount > 0) {
+            $this->addFlash('danger', sprintf('Impossible de supprimer « %s » : %d événement(s) ont lieu ici.', $venue->getName(), $eventCount));
 
             return $this->redirectToRoute('admin_venue_index');
         }
