@@ -9,11 +9,14 @@
     <div class="card p-3 p-md-4" style="max-width: 720px">
         <p class="text-muted">
             <i class="bi bi-calendar-event"></i> {{ event.title }} · {{ event.venue.name }}
-            ({{ event.venue.capacity|number_format(0, ',', ' ') }} places)
-            {% if ticket_type.sold > 0 %}<br><i class="bi bi-info-circle"></i> {{ ticket_type.sold }} billet(s) déjà vendu(s).{% endif %}
+            <br><i class="bi bi-grid-3x3-gap"></i> Zones :
+            {% for zone in event.venue.zones %}{{ zone.name }} ({{ zone.capacity|number_format(0, ',', ' ') }} places){{ not loop.last ? ', ' }}{% endfor %}
         </p>
         {{ form_start(form) }}
-            {{ form_row(form.name) }}
+            <div class="row">
+                <div class="col-sm-6">{{ form_row(form.name) }}</div>
+                <div class="col-sm-6">{{ form_row(form.zone) }}</div>
+            </div>
             <div class="row">
                 <div class="col-sm-6">{{ form_row(form.price) }}</div>
                 <div class="col-sm-6">{{ form_row(form.quantity) }}</div>

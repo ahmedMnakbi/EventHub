@@ -11,7 +11,7 @@
     {% set menu = [
         {route: 'admin_dashboard', prefix: 'admin_dashboard', icon: 'bi-speedometer2', label: 'Tableau de bord'},
         {route: 'admin_category_index', prefix: 'admin_category', icon: 'bi-tags', label: 'Catégories'},
-        {route: 'admin_venue_index', prefix: 'admin_venue', icon: 'bi-geo-alt', label: 'Lieux'},
+        {route: 'admin_venue_index', prefix: 'admin_venue', icon: 'bi-geo-alt', label: 'Lieux', also: 'admin_zone'},
         {route: 'admin_event_index', prefix: 'admin_event', icon: 'bi-calendar-event', label: 'Événements', also: 'admin_ticket_type'},
         {route: null, icon: 'bi-receipt', label: 'Réservations', step: 7},
         {route: null, icon: 'bi-people', label: 'Clients', step: 7},

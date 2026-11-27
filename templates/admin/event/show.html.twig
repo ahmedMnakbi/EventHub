@@ -11,8 +11,17 @@
     <div class="row g-4">
         <div class="col-lg-4">
             <div class="card overflow-hidden">
-                {% if event.image %}
-                    <img src="{{ asset(event_upload_path ~ '/' ~ event.image) }}" alt="Affiche de {{ event.title }}" class="card-img-top">
+                {% if event.mainImage %}
+                    <img src="{{ asset(event_upload_path ~ '/' ~ event.mainImage) }}" alt="Affiche de {{ event.title }}" class="card-img-top">
+                {% endif %}
+                {% if event.images|length > 1 %}
+                    <div class="d-flex flex-wrap gap-2 p-2 border-bottom">
+                        {% for image in event.images|slice(1) %}
+                            <a href="{{ asset(event_upload_path ~ '/' ~ image) }}" target="_blank" rel="noopener">
+                                <img src="{{ asset(event_upload_path ~ '/' ~ image) }}" alt="Image {{ loop.index + 1 }} de {{ event.title }}" class="event-thumb" loading="lazy">
+                            </a>
+                        {% endfor %}
+                    </div>
                 {% endif %}
                 <div class="card-body">
                     <span class="badge text-bg-{{ event.status.color }} mb-2">{{ event.status.label }}</span>
@@ -47,14 +56,22 @@
                     <a href="{{ path('admin_ticket_type_new', {id: event.id}) }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Ajouter un billet</a>
                 </div>
 
-                {% set capacity = event.venue.capacity %}
-                {% set total = event.totalQuantity %}
-                <div class="small text-muted mb-1">
-                    {{ total|number_format(0, ',', ' ') }} / {{ capacity|number_format(0, ',', ' ') }} places du lieu mises en vente
-                    · {{ event.totalSold|number_format(0, ',', ' ') }} vendue(s)
-                </div>
-                <div class="progress mb-3" role="progressbar" aria-label="Places mises en vente" aria-valuenow="{{ total }}" aria-valuemin="0" aria-valuemax="{{ capacity }}" style="height: 6px">
-                    <div class="progress-bar" style="width: {{ capacity > 0 ? (total * 100 / capacity)|round : 0 }}%"></div>
+                {# Tickets put on sale per zone of the venue, against the zone capacity. #}
+                <div class="row g-3 mb-3">
+                    {% for zone in event.venue.zones %}
+                        {% set allocated = 0 %}
+                        {% for ticket in event.ticketTypes|filter(t => t.zone == zone) %}
+                            {% set allocated = allocated + ticket.quantity %}
+                        {% endfor %}
+                        <div class="col-sm-6">
+                            <div class="small text-muted mb-1">
+                                <i class="bi bi-grid-3x3-gap"></i> {{ zone.name }} : {{ allocated|number_format(0, ',', ' ') }} / {{ zone.capacity|number_format(0, ',', ' ') }} places mises en vente
+                            </div>
+                            <div class="progress" role="progressbar" aria-label="Zone {{ zone.name }}" aria-valuenow="{{ allocated }}" aria-valuemin="0" aria-valuemax="{{ zone.capacity }}" style="height: 6px">
+                                <div class="progress-bar" style="width: {{ zone.capacity > 0 ? (allocated * 100 / zone.capacity)|round : 0 }}%"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
 
                 {% if event.ticketTypes is empty %}
@@ -67,10 +84,9 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Billet</th>
+                                    <th>Zone</th>
                                     <th class="text-end">Prix</th>
                                     <th class="text-end">Places</th>
-                                    <th class="text-end d-none d-xl-table-cell">Vendus</th>
-                                    <th class="text-end">Restants</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
@@ -78,12 +94,9 @@
                                 {% for ticket in event.ticketTypes %}
                                     <tr>
                                         <td class="fw-semibold">{{ ticket.name }}</td>
+                                        <td>{{ ticket.zone.name }}</td>
                                         <td class="text-end text-nowrap">{{ ticket.price|number_format(2, ',', ' ') }} DT</td>
-                                        <td class="text-end">{{ ticket.quantity }}</td>
-                                        <td class="text-end d-none d-xl-table-cell">{{ ticket.sold }}</td>
-                                        <td class="text-end">
-                                            {% if ticket.soldOut %}<span class="badge text-bg-danger">Complet</span>{% else %}{{ ticket.remaining }}{% endif %}
-                                        </td>
+                                        <td class="text-end">{{ ticket.quantity|number_format(0, ',', ' ') }}</td>
                                         <td class="text-end text-nowrap">
                                             <a href="{{ path('admin_ticket_type_edit', {id: ticket.id}) }}" class="btn btn-sm btn-outline-primary" title="Modifier"><i class="bi bi-pencil"></i></a>
                                             {{ include('admin/_delete_form.html.twig', {

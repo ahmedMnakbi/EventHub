@@ -1,6 +1,6 @@
 # EventHub – démonstration de l'avancement (étapes 0 à 4)
 
-Ce document est le scénario de démonstration pour le professeur. Il couvre ce qui est fait aujourd'hui : authentification, comptes, back-office des catégories, lieux, événements, types de billets et upload d'affiche. On y montre aussi, en direct, les protections contre XSS, injection SQL et CSRF.
+Ce document est le scénario de démonstration pour le professeur. Il couvre ce qui est fait aujourd'hui : authentification, comptes, back-office des catégories, lieux et zones, événements (plusieurs images), types de billets par zone. Le modèle tient compte de la correction du professeur. On y montre aussi, en direct, les protections contre XSS, injection SQL et CSRF.
 
 Durée visée : **15 à 20 minutes**, puis les questions.
 Chaque membre présente une partie : le sujet l'exige.
@@ -8,7 +8,7 @@ Chaque membre présente une partie : le sujet l'exige.
 | Partie | Présentateur | Durée | Contenu |
 |---|---|---|---|
 | 1 | **Ahmed Mnakbi** | ~5 min | Projet, modélisation, stack, git ; inscription, connexion, compte, contrôle d'accès |
-| 2 | **Saker Fradi** | ~6 min | Catégories, lieux, événements, upload de l'affiche, types de billets, règles métier |
+| 2 | **Saker Fradi** | ~6 min | Catégories, lieux et zones, événements, upload des images, types de billets par zone, règles métier |
 | 3 | **Khaled Lourimi** | ~5 min | Attaques en direct sur le back-office (SQLi, CSRF, paramètres falsifiés) ; réservations et suite du projet |
 
 > Les parties sont indicatives : adaptez-les, mais que chacun ait **manipulé lui-même** sa partie avant la démo.
@@ -24,10 +24,13 @@ Chaque membre présente une partie : le sujet l'exige.
 - [ ] **Compte client :** inscrivez-le via le site (`/inscription`), par exemple `client@eventhub.tn`. Ensuite, **déconnectez-vous**.
 - [ ] **Données de base**, créées depuis l'admin. Elles servent de décor ; d'autres seront créées en direct.
   - Catégories : `Concerts` (icône `bi-music-note-beamed`), `Conférences` (`bi-mic`), `Festivals` (`bi-stars`)
-  - Lieux : `Théâtre Municipal`, Avenue Habib Bourguiba, Tunis, 1350 places ; `Cité de la Culture`, Avenue Mohamed V, Tunis, 1800 places ; `Amphithéâtre d'El Jem`, El Jem, 3500 places
-  - Un événement complet, par exemple « Festival de jazz de Carthage », avec affiche et deux billets : Standard à 35 DT pour 1200 places, VIP à 90 DT pour 300 places. Passez-le en **Publié**.
+  - Lieux, chacun découpé en zones depuis sa page détail :
+    - `Théâtre Municipal`, Avenue Habib Bourguiba, Tunis, 1350 places : zones `Parterre` (1000) et `Balcon` (350) ;
+    - `Cité de la Culture`, Avenue Mohamed V, Tunis, 1800 places : zones `Pelouse` (1500) et `Gradins` (300) ;
+    - `Amphithéâtre d'El Jem`, El Jem, 3500 places : zone `Gradins` (3500).
+  - Un événement complet, par exemple « Festival de jazz de Carthage » à la Cité de la Culture, avec 2 ou 3 images et ces billets : Standard en Pelouse à 35 DT pour 1200 places, VIP en Pelouse à 90 DT pour 300 places, Étudiant en Gradins à 15 DT pour 300 places. Passez-le en **Publié**.
 - [ ] **Fichiers de test** dans un dossier `demo` sur le bureau :
-  - `affiche.jpg` : une vraie affiche (JPEG ou PNG, moins de 2 Mo, au moins 300 × 300 px)
+  - `affiche.jpg`, `photo1.jpg` et `photo2.jpg` : de vraies images (JPEG ou PNG, moins de 2 Mo, au moins 300 × 300 px)
   - `faux.jpg` : ouvrez le Bloc-notes, tapez `ceci n'est pas une image`, puis enregistrez sous `faux.jpg` avec le type « Tous les fichiers »
   - `mini.png` : une image de moins de 300 px, une petite icône par exemple
   - `lourde.jpg` : une photo de plus de 2 Mo
@@ -50,10 +53,11 @@ Chaque membre présente une partie : le sujet l'exige.
 ### 2.1 Présentation (1 min 30)
 
 - **Le thème :** une billetterie d'événements. Les visiteurs consultent des événements et réservent des billets ; l'administrateur gère tout depuis un back-office.
-- **Pourquoi Events :** la réservation est au cœur du métier (stock de places, types de billets, statuts), l'upload a une place naturelle (l'affiche), et les statistiques ont du sens (chiffre d'affaires, billets vendus).
+- **Pourquoi Events :** la réservation est au cœur du métier (stock de places, types de billets, statuts), l'upload a une place naturelle (les images de l'événement), et les statistiques ont du sens (chiffre d'affaires, billets vendus).
 - **Les diagrammes** de cas d'utilisation (client et admin) et de classes :
-  - 6 entités avec CRUD hors User : Category, Venue, Event, TicketType, Reservation (+ ReservationItem) et Review ;
-  - montrez les compositions Event ◆ TicketType et Reservation ◆ ReservationItem, et la note des règles métier.
+  - **version 2, corrigée par le professeur** : 10 entités hors User (Category, Venue, Zone, Event, TicketType, Reservation, ReservationItem, Ticket, Payment et Review) ;
+  - les changements : plusieurs images par événement, des zones dans chaque lieu, `sold` supprimé (calculé à partir des réservations), des statuts en énumérations, l'avis rattaché à la réservation, le paiement Stripe et des tickets avec QR code ;
+  - montrez les compositions Venue ◆ Zone, Event ◆ TicketType, Reservation ◆ ReservationItem et ReservationItem ◆ Ticket.
 - **La stack :** Symfony 7.4 LTS, Doctrine, Twig et Bootstrap 5. **Pas d'EasyAdmin**, interdit aux équipes de 3 : tout le back-office est fait à la main.
 - **Git, sur GitHub :** une branche et une Pull Request par étape (PR #1 à #3), et des commits explicites.
 
@@ -106,45 +110,54 @@ Connectez-vous avec le compte **admin**, dans la fenêtre normale.
 3. Icône `javascript:alert(1)` → **refusé**, le format est imposé (`bi-…`).
 4. **Lieux** : filtrez par ville avec la liste déroulante, et triez par capacité en cliquant sur l'en-tête de colonne.
 5. Essayez une capacité de `-10` → **refusé**.
+6. Ouvrez un lieu (icône œil) → page détail avec ses **zones** et la jauge « places réparties ».
+7. Ajoutez une zone `Fosse` de 100 places dans un lieu déjà entièrement réparti → **refusé** (« Capacité du lieu dépassée : il reste 0 place »).
+8. Réduisez la capacité du lieu en dessous du total de ses zones → **refusé**.
+9. Supprimez une zone utilisée par des billets → **refusé**.
 
-### 3.3 Événement avec upload de l'affiche (2 min 30)
+### 3.3 Événement avec upload des images (2 min 30)
 
 **Événements → Nouvel événement**
 
-1. Laissez l'affiche vide → **refusé** (« L'affiche de l'événement est obligatoire »).
-2. Affiche `faux.jpg` → **refusé** (« Formats acceptés : JPEG, PNG ou WebP »).
+1. Ne mettez aucune image → **refusé** (« Ajoutez au moins une image »).
+2. Sélectionnez `affiche.jpg` **et** `faux.jpg` → **refusé** (« Formats acceptés : JPEG, PNG ou WebP »). Même une seule mauvaise image bloque tout l'envoi.
    > « Le type est vérifié sur le **contenu réel** du fichier, pas sur son extension. »
-3. Affiche `mini.png` → **refusé**, image trop petite.
-4. Affiche `lourde.jpg` → **refusé**, plus de 2 Mo.
+3. `mini.png` → **refusé**, image trop petite.
+4. `lourde.jpg` → **refusé**, plus de 2 Mo.
 5. Date de fin avant la date de début → **refusé**.
 6. Statut **Publié** sans aucun billet → **refusé** (« Ajoutez au moins un type de billet avant de publier »).
-7. Remplissez correctement, avec `affiche.jpg` et le statut **Brouillon** → créé, et on arrive sur la **page détail**.
+7. Remplissez correctement, avec `affiche.jpg`, `photo1.jpg` et `photo2.jpg` et le statut **Brouillon** → créé. On arrive sur la **page détail** : la première image sert d'affiche, les autres forment la galerie.
+8. **Modifier** → cochez une image à supprimer et ajoutez-en une autre → enregistré. Cochez toutes les images sans en ajouter → **refusé** (« Un événement doit garder au moins une image »).
 
 > À dire sur l'upload :
 > - le nom du fichier est **généré par le serveur** (slug + partie aléatoire), l'extension est déduite du contenu ;
 > - les fichiers vont dans `public/uploads/events`, et un `.htaccess` y interdit l'exécution de scripts ;
-> - quand on remplace l'affiche, l'ancienne est supprimée du disque.
+> - une image retirée de l'événement est supprimée du disque ;
+> - la liste des images à supprimer n'accepte que les fichiers de l'événement : un nom falsifié comme `../../.env` est refusé ;
+> - 8 images au plus, et au moins une.
 >
 > Montrez le nom du fichier : clic droit sur l'image → « Ouvrir l'image dans un nouvel onglet ».
 
-### 3.4 Types de billets et règles métier (1 min 30)
+### 3.4 Types de billets par zone et règles métier (1 min 30)
 
-Sur la page détail de l'événement, créé dans un lieu de 1350 places :
+Sur la page détail de l'événement, créé au Théâtre Municipal (Parterre 1000, Balcon 350) :
 
-1. **Ajouter un billet** : `Standard`, prix `-5` → **refusé**.
-2. `Standard`, 30 DT, **2000 places** → **refusé** (« Capacité du lieu dépassée : il reste 1350 places »).
-3. `Standard`, 30 DT, 1000 places → ajouté. La jauge affiche 1000 / 1350.
-4. `VIP`, 80 DT, 400 places → **refusé**, il ne reste que 350 places.
-5. `VIP`, 80 DT, 350 places → ajouté.
+1. **Ajouter un billet** : la liste « Zone » ne propose **que les zones du lieu de l'événement**.
+2. `Standard`, zone Parterre, prix `-5` → **refusé**.
+3. `Standard`, Parterre, 30 DT, **1200 places** → **refusé** (« Capacité de la zone « Parterre » dépassée : il reste 1000 places »).
+4. `Standard`, Parterre, 30 DT, 1000 places → ajouté. La jauge de la zone affiche 1000 / 1000.
+5. `VIP`, Balcon, 80 DT, 350 places → ajouté.
+   > « Chaque type de billet donne accès à une zone ; la zone du ticket se déduit donc de son type. »
 6. **Modifier l'événement** → statut **Publié** → accepté, puisqu'il a maintenant des billets.
-7. Supprimez le billet **VIP** → supprimé. Supprimez ensuite **Standard**, le dernier billet d'un événement publié → **refusé** (« Repassez d'abord l'événement en brouillon »).
+7. **Modifier l'événement** → changez le lieu → **refusé** : les billets utilisent les zones du lieu actuel.
+8. Supprimez le billet **VIP** → supprimé. Supprimez ensuite **Standard**, le dernier billet d'un événement publié → **refusé** (« Repassez d'abord l'événement en brouillon »).
 
 ### 3.5 Suppressions protégées (30 s)
 
 1. Dans **Catégories**, supprimez la catégorie de l'événement que vous venez de créer → **refusé** (« … événement(s) utilisent cette catégorie »). C'est la même chose pour un lieu utilisé.
 2. Cliquez sur la corbeille, puis **Annuler** dans la boîte de confirmation → rien n'est supprimé.
 
-> À dire : « Un événement dont des billets ont été vendus ne peut pas être supprimé : on le passe en **Annulé**, pour garder l'historique des réservations. »
+> À dire : « Une fois les réservations en place (étape 6), un événement, un billet ou une zone déjà réservés ne pourront plus être supprimés : on passera l'événement en **Annulé**, pour garder l'historique. »
 
 ---
 
@@ -191,12 +204,14 @@ Dans **Catégories** ou **Événements**, tapez dans la recherche :
 Revenez au **diagramme de classes** et présentez ce qui arrive :
 
 - **Étape 5, catalogue client :** recherche et filtres par mot-clé, catégorie, ville, date et prix, page détail, « à partir de X DT ».
-- **Étape 6, panier et réservation :**
-  - panier en session ;
-  - validation **transactionnelle** : on vérifie que la quantité ne dépasse pas `getRemaining()`, puis on met à jour `sold` ;
+- **Étape 6, panier, réservation et paiement :**
+  - panier en session pour **un seul événement** ;
+  - validation **transactionnelle** : les places restantes sont **calculées** (quantité − billets réservés non annulés), comme l'a demandé le professeur, sans champ `sold` ;
+  - paiement **Stripe Checkout** en mode test : aucune donnée bancaire ne passe par notre serveur ;
+  - génération d'un **ticket par place** : n° de série unique, QR code, PDF ;
   - « Mes réservations » protégée par un **Voter** : un client ne voit que ses propres réservations.
 - **Étape 7 :** admin des réservations (confirmer ou annuler, ce qui remet les places en vente) et des clients (activer ou désactiver un compte ; le `UserChecker` qui bloque un compte désactivé est déjà en place).
-- **Étape 8 :** avis, seulement après une réservation confirmée, avec modération.
+- **Étape 8 :** un avis par réservation **confirmée** (l'utilisateur et l'événement se déduisent de la réservation), avec modération.
 - **Étape 9 :** statistiques avec Chart.js (chiffre d'affaires, billets vendus, top des événements).
 - **Étapes 10 et 11 :** données de démo, en-têtes de sécurité (CSP), pages d'erreur personnalisées, **mode production**, hébergement.
 

@@ -59,10 +59,10 @@ class EventController extends AbstractController
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $event = new Event();
-        $form = $this->createForm(EventType::class, $event, ['poster_required' => true]);
+        $form = $this->createForm(EventType::class, $event, ['images_required' => true]);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid() && $this->storePoster($form, $event)) {
+        if ($form->isSubmitted() && $form->isValid() && $this->storeImages($form, $event) !== null) {
             $entityManager->persist($event);
             $entityManager->flush();
             $this->addFlash('success', sprintf('Événement « %s » créé. Ajoutez maintenant ses types de billets.', $event->getTitle()));
@@ -85,16 +85,15 @@ class EventController extends AbstractController
     #[Route('/{id<\d+>}/modifier', name: 'admin_event_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Event $event, EntityManagerInterface $entityManager): Response
     {
-        $oldPoster = $event->getImage();
-        $form = $this->createForm(EventType::class, $event);
+        $form = $this->createForm(EventType::class, $event, ['existing_images' => $event->getImages()]);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid() && $this->storePoster($form, $event)) {
+        if ($form->isSubmitted() && $form->isValid() && null !== $removed = $this->storeImages($form, $event)) {
             $entityManager->flush();
 
-            // The old poster is deleted only once the new one is safely saved.
-            if ($oldPoster !== $event->getImage()) {
-                $this->fileUploader->remove($oldPoster);
+            // Removed files are deleted from the disk only once the database is up to date.
+            foreach ($removed as $fileName) {
+                $this->fileUploader->remove($fileName);
             }
             $this->addFlash('success', sprintf('Événement « %s » modifié.', $event->getTitle()));
 
@@ -121,38 +120,64 @@ class EventController extends AbstractController
             return $this->redirectToRoute('admin_event_index');
         }
 
-        // Business rule: an event with sold tickets is kept (history of reservations). Cancel it instead.
-        if ($event->hasSales()) {
-            $this->addFlash('danger', sprintf('Impossible de supprimer « %s » : des billets ont déjà été vendus. Passez-le plutôt au statut « Annulé ».', $event->getTitle()));
+        // Step 6 (reservations) adds: refuse when the event has reservations (cancel it instead).
 
-            return $this->redirectToRoute('admin_event_show', ['id' => $event->getId()]);
-        }
-
-        $poster = $event->getImage();
+        $images = $event->getImages();
         $entityManager->remove($event);
         $entityManager->flush();
-        $this->fileUploader->remove($poster);
+        foreach ($images as $fileName) {
+            $this->fileUploader->remove($fileName);
+        }
         $this->addFlash('success', sprintf('Événement « %s » supprimé.', $event->getTitle()));
 
         return $this->redirectToRoute('admin_event_index');
     }
 
-    /** Saves the uploaded poster, if any. Returns false (with a form error) when the move fails. */
-    private function storePoster(FormInterface $form, Event $event): bool
+    /**
+     * Applies the image changes of the form: new uploads and removals.
+     * Returns the removed file names (to delete from disk after flush), or null with a form error.
+     *
+     * @return list<string>|null
+     */
+    private function storeImages(FormInterface $form, Event $event): ?array
     {
-        $file = $form->get('posterFile')->getData();
-        if (!$file instanceof UploadedFile) {
-            return true;
+        /** @var list<UploadedFile> $files */
+        $files = $form->get('imageFiles')->getData() ?? [];
+        /** @var list<string> $removed */
+        $removed = $form->has('removeImages') ? ($form->get('removeImages')->getData() ?? []) : [];
+
+        $total = count($event->getImages()) - count($removed) + count($files);
+        if ($total < 1) {
+            $form->get('imageFiles')->addError(new FormError('Un événement doit garder au moins une image.'));
+
+            return null;
+        }
+        if ($total > Event::MAX_IMAGES) {
+            $form->get('imageFiles')->addError(new FormError(sprintf('Au plus %d images par événement (il y en aurait %d).', Event::MAX_IMAGES, $total)));
+
+            return null;
         }
 
+        $uploaded = [];
         try {
-            $event->setImage($this->fileUploader->upload($file));
+            foreach ($files as $file) {
+                $uploaded[] = $this->fileUploader->upload($file);
+            }
         } catch (FileException) {
-            $form->get('posterFile')->addError(new FormError('L\'affiche n\'a pas pu être enregistrée, réessayez.'));
+            // Roll back the files already moved, so no orphan stays on disk.
+            array_map($this->fileUploader->remove(...), $uploaded);
+            $form->get('imageFiles')->addError(new FormError('Les images n\'ont pas pu être enregistrées, réessayez.'));
 
-            return false;
+            return null;
         }
 
-        return true;
+        foreach ($removed as $fileName) {
+            $event->removeImage($fileName);
+        }
+        foreach ($uploaded as $fileName) {
+            $event->addImage($fileName);
+        }
+
+        return $removed;
     }
 }

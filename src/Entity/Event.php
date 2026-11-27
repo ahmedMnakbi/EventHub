@@ -17,6 +17,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[ORM\Index(columns: ['status'], name: 'idx_event_status')]
 class Event
 {
+    public const MAX_IMAGES = 8;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -36,9 +38,14 @@ class Event
     #[Assert\Length(min: 20, max: 5000)]
     private ?string $description = null;
 
-    /** File name of the uploaded poster (stored in public/uploads/events). */
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $image = null;
+    /**
+     * File names of the uploaded images (stored in public/uploads/events).
+     * The first one is the main poster.
+     *
+     * @var list<string>
+     */
+    #[ORM\Column(type: Types::JSON)]
+    private array $images = [];
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     #[Assert\NotNull(message: 'Indiquez la date de début.')]
@@ -92,13 +99,14 @@ class Event
                 ->addViolation();
         }
 
-        // The tickets put on sale can never exceed the capacity of the venue.
-        if ($this->venue !== null && $this->getTotalQuantity() > $this->venue->getCapacity()) {
-            $context->buildViolation(sprintf(
-                'Ce lieu n\'a que %d places, mais %d billets sont déjà prévus pour cet événement.',
-                $this->venue->getCapacity(),
-                $this->getTotalQuantity(),
-            ))->atPath('venue')->addViolation();
+        // Ticket types use zones of the venue: the venue cannot change while tickets exist.
+        foreach ($this->ticketTypes as $ticketType) {
+            if ($ticketType->getZone() !== null && $ticketType->getZone()->getVenue() !== $this->venue) {
+                $context->buildViolation('Le lieu ne peut pas changer : des types de billets utilisent les zones du lieu actuel. Supprimez-les d\'abord.')
+                    ->atPath('venue')
+                    ->addViolation();
+                break;
+            }
         }
     }
 
@@ -126,16 +134,6 @@ class Event
         return array_sum($this->ticketTypes->map(fn (TicketType $t) => (int) $t->getQuantity())->toArray());
     }
 
-    public function getTotalSold(): int
-    {
-        return array_sum($this->ticketTypes->map(fn (TicketType $t) => $t->getSold())->toArray());
-    }
-
-    /** True when at least one ticket has been sold: the event can no longer be deleted. */
-    public function hasSales(): bool
-    {
-        return $this->getTotalSold() > 0;
-    }
 
     public function getId(): ?int
     {
@@ -177,14 +175,28 @@ class Event
         return $this;
     }
 
-    public function getImage(): ?string
+    /** @return list<string> */
+    public function getImages(): array
     {
-        return $this->image;
+        return $this->images;
     }
 
-    public function setImage(?string $image): static
+    /** Main poster: the first image. */
+    public function getMainImage(): ?string
     {
-        $this->image = $image;
+        return $this->images[0] ?? null;
+    }
+
+    public function addImage(string $fileName): static
+    {
+        $this->images[] = $fileName;
+
+        return $this;
+    }
+
+    public function removeImage(string $fileName): static
+    {
+        $this->images = array_values(array_filter($this->images, fn (string $f) => $f !== $fileName));
 
         return $this;
     }
