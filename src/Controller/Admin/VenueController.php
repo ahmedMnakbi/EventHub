@@ -46,14 +46,23 @@ class VenueController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->persist($venue);
             $entityManager->flush();
-            $this->addFlash('success', sprintf('Lieu « %s » créé.', $venue->getName()));
+            $this->addFlash('success', sprintf('Lieu « %s » créé. Découpez-le maintenant en zones (chaises, pelouse…).', $venue->getName()));
 
-            return $this->redirectToRoute('admin_venue_index');
+            return $this->redirectToRoute('admin_venue_show', ['id' => $venue->getId()]);
         }
 
         return $this->render('admin/venue/form.html.twig', [
             'form' => $form,
             'venue' => $venue,
+        ]);
+    }
+
+    #[Route('/{id<\d+>}', name: 'admin_venue_show', methods: ['GET'])]
+    public function show(Venue $venue, EventRepository $eventRepository): Response
+    {
+        return $this->render('admin/venue/show.html.twig', [
+            'venue' => $venue,
+            'event_count' => $eventRepository->count(['venue' => $venue]),
         ]);
     }
 
@@ -67,7 +76,12 @@ class VenueController extends AbstractController
             $entityManager->flush();
             $this->addFlash('success', sprintf('Lieu « %s » modifié.', $venue->getName()));
 
-            return $this->redirectToRoute('admin_venue_index');
+            return $this->redirectToRoute('admin_venue_show', ['id' => $venue->getId()]);
+        }
+
+        if ($form->isSubmitted()) {
+            // Invalid form: undo the in-memory changes so the page shows the saved data.
+            $entityManager->refresh($venue);
         }
 
         return $this->render('admin/venue/form.html.twig', [

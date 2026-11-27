@@ -9,6 +9,7 @@ use App\Enum\EventStatus;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
@@ -16,30 +17,33 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\All;
+use Symfony\Component\Validator\Constraints\Count;
 use Symfony\Component\Validator\Constraints\Image;
-use Symfony\Component\Validator\Constraints\NotNull;
 
 class EventType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $posterConstraints = [
-            // Checks the real content of the file (not its name): it must be a real image.
-            new Image(
-                maxSize: '2M',
-                mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
-                mimeTypesMessage: 'Formats acceptés : JPEG, PNG ou WebP.',
-                maxSizeMessage: 'L\'image ne doit pas dépasser {{ limit }} {{ suffix }}.',
-                minWidth: 300,
-                maxWidth: 4000,
-                minHeight: 300,
-                maxHeight: 4000,
-            ),
+        $imageConstraints = [
+            // Each file is checked on its real content (not its name): it must be a real image.
+            new All([
+                new Image(
+                    maxSize: '2M',
+                    mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+                    mimeTypesMessage: 'Formats acceptés : JPEG, PNG ou WebP.',
+                    maxSizeMessage: 'Chaque image doit faire au plus {{ limit }} {{ suffix }}.',
+                    minWidth: 300,
+                    maxWidth: 4000,
+                    minHeight: 300,
+                    maxHeight: 4000,
+                ),
+            ]),
+            new Count(max: Event::MAX_IMAGES, maxMessage: 'Au plus {{ limit }} images par événement.'),
         ];
-        if ($options['poster_required']) {
-            $posterConstraints[] = new NotNull(message: 'L\'affiche de l\'événement est obligatoire.');
+        if ($options['images_required']) {
+            $imageConstraints[] = new Count(min: 1, minMessage: 'Ajoutez au moins une image (l\'affiche de l\'événement).');
         }
-
         $builder
             ->add('title', TextType::class, ['label' => 'Titre'])
             ->add('category', EntityType::class, [
@@ -53,7 +57,11 @@ class EventType extends AbstractType
                 'label' => 'Lieu',
                 'placeholder' => '— Choisir —',
                 'choice_label' => fn (Venue $v) => sprintf('%s (%s) · %d places', $v->getName(), $v->getCity(), $v->getCapacity()),
-                'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('v')->orderBy('v.name', 'ASC'),
+                // Only venues split into zones can host an event (ticket types need a zone).
+                'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('v')
+                    ->andWhere('SIZE(v.zones) > 0')
+                    ->orderBy('v.name', 'ASC'),
+                'help' => 'Seuls les lieux découpés en zones sont proposés.',
             ])
             ->add('startAt', DateTimeType::class, [
                 'label' => 'Début',
@@ -75,23 +83,38 @@ class EventType extends AbstractType
                 'label' => 'Description',
                 'attr' => ['rows' => 6],
             ])
-            ->add('posterFile', FileType::class, [
-                'label' => 'Affiche',
+            ->add('imageFiles', FileType::class, [
+                'label' => $options['images_required'] ? 'Images' : 'Ajouter des images',
                 'mapped' => false,
-                'required' => $options['poster_required'],
-                'constraints' => $posterConstraints,
-                'help' => 'JPEG, PNG ou WebP, 2 Mo maximum, entre 300 et 4000 px de côté.',
+                'multiple' => true,
+                'required' => $options['images_required'],
+                'constraints' => $imageConstraints,
+                'help' => sprintf('JPEG, PNG ou WebP, 2 Mo maximum chacune, entre 300 et 4000 px de côté, %d images au plus. La première sert d\'affiche.', Event::MAX_IMAGES),
                 'attr' => ['accept' => 'image/jpeg,image/png,image/webp'],
             ])
         ;
+
+        if ($options['existing_images'] !== []) {
+            // Choices = the current file names only: any other value is rejected by the form.
+            $builder->add('removeImages', ChoiceType::class, [
+                'label' => 'Images à supprimer',
+                'mapped' => false,
+                'required' => false,
+                'multiple' => true,
+                'expanded' => true,
+                'choices' => array_combine($options['existing_images'], $options['existing_images']),
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => Event::class,
-            'poster_required' => false,
+            'images_required' => false,
+            'existing_images' => [],
         ]);
-        $resolver->setAllowedTypes('poster_required', 'bool');
+        $resolver->setAllowedTypes('images_required', 'bool');
+        $resolver->setAllowedTypes('existing_images', 'string[]');
     }
 }

@@ -37,57 +37,51 @@ class TicketType
     #[Assert\LessThanOrEqual(200000)]
     private ?int $quantity = null;
 
-    /** Number of tickets sold, updated by reservations only (never editable in a form). */
-    #[ORM\Column(options: ['default' => 0])]
-    private int $sold = 0;
-
     #[ORM\ManyToOne(inversedBy: 'ticketTypes')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Event $event = null;
 
+    /** Physical area of the venue this ticket type gives access to. */
+    #[ORM\ManyToOne(inversedBy: 'ticketTypes')]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Choisissez une zone.')]
+    private ?Zone $zone = null;
+
     #[Assert\Callback]
-    public function validateQuantity(ExecutionContextInterface $context): void
+    public function validateZone(ExecutionContextInterface $context): void
     {
-        if ($this->quantity === null) {
+        if ($this->zone === null || $this->event === null) {
             return;
         }
 
-        // Tickets already sold cannot disappear.
-        if ($this->quantity < $this->sold) {
-            $context->buildViolation(sprintf('%d billets ont déjà été vendus : la quantité ne peut pas être inférieure.', $this->sold))
-                ->atPath('quantity')
+        // The zone must belong to the venue of the event (protects against a tampered form).
+        if ($this->zone->getVenue() !== $this->event->getVenue()) {
+            $context->buildViolation('Cette zone n\'appartient pas au lieu de l\'événement.')
+                ->atPath('zone')
                 ->addViolation();
+
+            return;
         }
 
-        // All ticket types of an event together must fit in the venue.
-        $venue = $this->event?->getVenue();
-        if ($venue !== null) {
+        // For one event, all ticket types of a zone together must fit in that zone.
+        if ($this->quantity !== null) {
             $others = 0;
             foreach ($this->event->getTicketTypes() as $ticketType) {
-                if ($ticketType !== $this) {
+                if ($ticketType !== $this && $ticketType->getZone() === $this->zone) {
                     $others += (int) $ticketType->getQuantity();
                 }
             }
-            $available = $venue->getCapacity() - $others;
+            $available = (int) $this->zone->getCapacity() - $others;
 
             if ($this->quantity > $available) {
                 $context->buildViolation(sprintf(
-                    'Capacité du lieu dépassée : il reste %d place(s) disponible(s) sur %d.',
+                    'Capacité de la zone « %s » dépassée : il reste %d place(s) sur %d.',
+                    $this->zone->getName(),
                     max(0, $available),
-                    $venue->getCapacity(),
+                    (int) $this->zone->getCapacity(),
                 ))->atPath('quantity')->addViolation();
             }
         }
-    }
-
-    public function getRemaining(): int
-    {
-        return max(0, (int) $this->quantity - $this->sold);
-    }
-
-    public function isSoldOut(): bool
-    {
-        return $this->getRemaining() === 0;
     }
 
     public function getId(): ?int
@@ -131,18 +125,6 @@ class TicketType
         return $this;
     }
 
-    public function getSold(): int
-    {
-        return $this->sold;
-    }
-
-    public function setSold(int $sold): static
-    {
-        $this->sold = $sold;
-
-        return $this;
-    }
-
     public function getEvent(): ?Event
     {
         return $this->event;
@@ -151,6 +133,18 @@ class TicketType
     public function setEvent(?Event $event): static
     {
         $this->event = $event;
+
+        return $this;
+    }
+
+    public function getZone(): ?Zone
+    {
+        return $this->zone;
+    }
+
+    public function setZone(?Zone $zone): static
+    {
+        $this->zone = $zone;
 
         return $this;
     }

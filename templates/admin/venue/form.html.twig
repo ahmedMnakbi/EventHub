@@ -16,7 +16,7 @@
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> {{ is_new ? 'Créer' : 'Enregistrer' }}</button>
-                <a href="{{ path('admin_venue_index') }}" class="btn btn-outline-secondary">Annuler</a>
+                <a href="{{ is_new ? path('admin_venue_index') : path('admin_venue_show', {id: venue.id}) }}" class="btn btn-outline-secondary">Annuler</a>
             </div>
         {{ form_end(form) }}
     </div>

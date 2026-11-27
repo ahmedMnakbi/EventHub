@@ -16,10 +16,11 @@ Les visiteurs consultent des événements (concerts, conférences, festivals…)
 |---|---|---|
 | 0–1 | Environnement et initialisation du projet | ✅ |
 | 2 | Inscription, connexion, compte client, layouts front et admin | ✅ |
-| 3 | Catégories et lieux (CRUD admin) | ✅ |
-| 4 | Événements et types de billets, upload de l'affiche | ✅ |
+| 3 | Catégories, lieux et leurs zones (CRUD admin) | ✅ |
+| 4 | Événements (plusieurs images) et types de billets par zone | ✅ |
+| 4 bis | Modèle v2 après correction du professeur (zones, images, sans `sold`) | ✅ |
 | 5 | Catalogue client : recherche, filtres, page détail | ⏳ |
-| 6 | Panier, réservation, « Mes réservations » | ⏳ |
+| 6 | Panier, réservation, paiement Stripe, tickets (QR code, PDF), « Mes réservations » | ⏳ |
 | 7 | Admin : réservations et clients | ⏳ |
 | 8 | Avis et modération | ⏳ |
 | 9 | Statistiques (Chart.js) | ⏳ |
@@ -201,12 +202,12 @@ On ne commite jamais directement sur `main`.
 | `/compte` | `ROLE_USER` | Profil, modification, changement de mot de passe |
 | `/admin` | `ROLE_ADMIN` | Tableau de bord |
 | `/admin/categories` | `ROLE_ADMIN` | CRUD des catégories |
-| `/admin/lieux` | `ROLE_ADMIN` | CRUD des lieux |
-| `/admin/evenements` | `ROLE_ADMIN` | CRUD des événements, avec upload de l'affiche ; types de billets gérés depuis la page détail |
+| `/admin/lieux` | `ROLE_ADMIN` | CRUD des lieux ; zones gérées depuis la page détail du lieu |
+| `/admin/evenements` | `ROLE_ADMIN` | CRUD des événements avec upload de plusieurs images ; types de billets, chacun dans une zone, gérés depuis la page détail |
 
 ## Uploads
 
-Les affiches sont stockées dans `public/uploads/events/`. Ce dossier est ignoré par git et créé automatiquement au premier upload : **chacun a donc ses propres affiches en local.**
+Les images des événements sont stockées dans `public/uploads/events/` (de 1 à 8 par événement ; la première sert d'affiche). Ce dossier est ignoré par git et créé automatiquement au premier upload : **chacun a donc ses propres images en local.**
 
 - Seules les images JPEG, PNG et WebP de 2 Mo maximum, entre 300 et 4000 px de côté, sont acceptées.
 - Le type est vérifié sur le contenu réel du fichier, et le nom est généré par le serveur.

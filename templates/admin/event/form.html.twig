@@ -21,16 +21,23 @@
             </div>
             {{ form_row(form.description) }}
 
-            <div class="row align-items-center">
-                {% if event.image %}
-                    <div class="col-auto mb-3">
-                        <img src="{{ asset(event_upload_path ~ '/' ~ event.image) }}" alt="Affiche actuelle" class="rounded border" style="max-height: 120px">
+            {% if form.removeImages is defined %}
+                <fieldset class="mb-3">
+                    <legend class="form-label fs-6">Images actuelles <small class="text-muted">(cochez celles à supprimer ; la première sert d'affiche)</small></legend>
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for choice in form.removeImages %}
+                            <label class="text-center small" for="{{ choice.vars.id }}">
+                                <img src="{{ asset(event_upload_path ~ '/' ~ choice.vars.value) }}" alt="Image {{ loop.index }}" class="rounded border d-block mb-1 event-thumb-lg">
+                                <input type="checkbox" class="form-check-input" id="{{ choice.vars.id }}" name="{{ choice.vars.full_name }}" value="{{ choice.vars.value }}" {{ choice.vars.checked ? 'checked' }}>
+                                {{ loop.first ? 'Affiche' : 'Supprimer' }}{% if loop.first %} · supprimer{% endif %}
+                            </label>
+                            {% do choice.setRendered %}
+                        {% endfor %}
                     </div>
-                {% endif %}
-                <div class="col">
-                    {{ form_row(form.posterFile, {help: event.image ? 'Laissez vide pour garder l\'affiche actuelle. ' ~ form.posterFile.vars.help : form.posterFile.vars.help}) }}
-                </div>
-            </div>
+                    {{ form_errors(form.removeImages) }}
+                </fieldset>
+            {% endif %}
+            {{ form_row(form.imageFiles, {help: is_new ? form.imageFiles.vars.help : 'Laissez vide pour garder les images actuelles. ' ~ form.imageFiles.vars.help}) }}
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> {{ is_new ? 'Créer' : 'Enregistrer' }}</button>

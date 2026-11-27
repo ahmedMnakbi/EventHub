@@ -23,7 +23,7 @@ class TicketTypeController extends AbstractController
         // Attached before validation so the capacity check sees the event and its venue.
         $event->addTicketType($ticketType);
 
-        $form = $this->createForm(TicketTypeFormType::class, $ticketType);
+        $form = $this->createForm(TicketTypeFormType::class, $ticketType, ['venue' => $ticketType->getEvent()->getVenue()]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -44,7 +44,7 @@ class TicketTypeController extends AbstractController
     #[Route('/admin/billets/{id<\d+>}/modifier', name: 'admin_ticket_type_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, TicketType $ticketType, EntityManagerInterface $entityManager): Response
     {
-        $form = $this->createForm(TicketTypeFormType::class, $ticketType);
+        $form = $this->createForm(TicketTypeFormType::class, $ticketType, ['venue' => $ticketType->getEvent()->getVenue()]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -77,11 +77,7 @@ class TicketTypeController extends AbstractController
             return $redirect;
         }
 
-        if ($ticketType->getSold() > 0) {
-            $this->addFlash('danger', sprintf('Impossible de supprimer « %s » : %d billet(s) déjà vendu(s).', $ticketType->getName(), $ticketType->getSold()));
-
-            return $redirect;
-        }
+        // Step 6 (reservations) adds: refuse when this ticket type has already been reserved.
 
         // A published event must keep at least one ticket type.
         if ($event->isPublished() && $event->getTicketTypes()->count() <= 1) {

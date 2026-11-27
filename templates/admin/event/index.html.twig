@@ -47,8 +47,8 @@
                     {% for event in events %}
                         <tr>
                             <td>
-                                {% if event.image %}
-                                    <img src="{{ asset(event_upload_path ~ '/' ~ event.image) }}" alt="" class="event-thumb" loading="lazy">
+                                {% if event.mainImage %}
+                                    <img src="{{ asset(event_upload_path ~ '/' ~ event.mainImage) }}" alt="" class="event-thumb" loading="lazy">
                                 {% else %}
                                     <span class="event-thumb d-inline-flex align-items-center justify-content-center bg-light text-muted"><i class="bi bi-image"></i></span>
                                 {% endif %}

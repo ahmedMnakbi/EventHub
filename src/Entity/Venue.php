@@ -3,9 +3,12 @@
 namespace App\Entity;
 
 use App\Repository\VenueRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: VenueRepository::class)]
 class Venue
@@ -40,9 +43,58 @@ class Venue
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
+    /**
+     * Composition: zones are deleted with their venue.
+     *
+     * @var Collection<int, Zone>
+     */
+    #[ORM\OneToMany(targetEntity: Zone::class, mappedBy: 'venue', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['name' => 'ASC'])]
+    private Collection $zones;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
+        $this->zones = new ArrayCollection();
+    }
+
+    #[Assert\Callback]
+    public function validateZones(ExecutionContextInterface $context): void
+    {
+        // The venue capacity cannot become smaller than the sum of its zones.
+        if ($this->capacity !== null && $this->getZonesCapacity() > $this->capacity) {
+            $context->buildViolation(sprintf('Les zones de ce lieu totalisent déjà %d places.', $this->getZonesCapacity()))
+                ->atPath('capacity')
+                ->addViolation();
+        }
+    }
+
+    /** @return Collection<int, Zone> */
+    public function getZones(): Collection
+    {
+        return $this->zones;
+    }
+
+    public function addZone(Zone $zone): static
+    {
+        if (!$this->zones->contains($zone)) {
+            $this->zones->add($zone);
+            $zone->setVenue($this);
+        }
+
+        return $this;
+    }
+
+    public function removeZone(Zone $zone): static
+    {
+        $this->zones->removeElement($zone);
+
+        return $this;
+    }
+
+    public function getZonesCapacity(): int
+    {
+        return array_sum($this->zones->map(fn (Zone $z) => (int) $z->getCapacity())->toArray());
     }
 
     public function __toString(): string

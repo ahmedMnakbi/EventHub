@@ -37,11 +37,12 @@
                 <tbody>
                     {% for venue in venues %}
                         <tr>
-                            <td class="fw-semibold">{{ venue.name }}</td>
+                            <td><a href="{{ path('admin_venue_show', {id: venue.id}) }}" class="fw-semibold text-decoration-none">{{ venue.name }}</a></td>
                             <td class="d-none d-md-table-cell text-muted">{{ venue.address }}</td>
                             <td>{{ venue.city }}</td>
                             <td class="text-end">{{ venue.capacity|number_format(0, ',', ' ') }}</td>
                             <td class="text-end text-nowrap">
+                                <a href="{{ path('admin_venue_show', {id: venue.id}) }}" class="btn btn-sm btn-outline-secondary" title="Détails et zones"><i class="bi bi-eye"></i></a>
                                 <a href="{{ path('admin_venue_edit', {id: venue.id}) }}" class="btn btn-sm btn-outline-primary" title="Modifier"><i class="bi bi-pencil"></i></a>
                                 {{ include('admin/_delete_form.html.twig', {
                                     action: path('admin_venue_delete', {id: venue.id}),
